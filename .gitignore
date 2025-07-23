@@ -1,4 +1,5 @@
 /node_modules
 smart_contract_hardhat\node_modules
+node_modules
 node_modules/
-node_modules/
+node_modules\
