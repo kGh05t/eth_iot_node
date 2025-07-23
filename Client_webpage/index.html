@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP32 Blockchain Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Roboto+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #00ff9d;
+      --secondary: #00e1ff;
+      --accent: #ff00c8;
+      --dark: #0a0a15;
+      --darker: #050510;
+      --panel: rgba(15, 20, 35, 0.8);
+      --text: #e0f0ff;
+      --success: #00ff9d;
+      --warning: #ffcc00;
+      --error: #ff3860;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: linear-gradient(135deg, var(--darker), var(--dark));
+      color: var(--text);
+      font-family: 'Roboto Mono', monospace;
+      min-height: 100vh;
+      padding: 20px;
+      position: relative;
+      overflow-x: hidden;
+    }
+    
+    body::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 10% 20%, rgba(0, 255, 157, 0.05) 0%, transparent 20%),
+        radial-gradient(circle at 90% 80%, rgba(0, 225, 255, 0.05) 0%, transparent 20%);
+      pointer-events: none;
+      z-index: -1;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+      position: relative;
+      padding: 20px 0;
+    }
+    
+    header::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 200px;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--primary), transparent);
+    }
+    
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2.8rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
+    }
+    
+    .subtitle {
+      font-size: 1.1rem;
+      color: var(--secondary);
+      letter-spacing: 1px;
+      margin-top: 10px;
+    }
+    
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 25px;
+    }
+    
+    .panel {
+      background: var(--panel);
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(0, 225, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+    }
+    
+    .panel::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+    }
+    
+    h2 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.6rem;
+      margin-bottom: 20px;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    h2 i {
+      font-size: 1.4rem;
+    }
+    
+    .status-box {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(10, 20, 40, 0.6);
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(0, 225, 255, 0.1);
+    }
+    
+    .status-label {
+      font-weight: 500;
+      color: var(--secondary);
+    }
+    
+    #walletAddress {
+      font-family: 'Roboto Mono', monospace;
+      color: var(--success);
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    button {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: var(--darker);
+      border: none;
+      padding: 15px 20px;
+      border-radius: 8px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 500;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 5px 15px rgba(0, 225, 255, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    button::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transition: 0.5s;
+    }
+    
+    button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0, 225, 255, 0.5);
+    }
+    
+    button:hover::before {
+      left: 100%;
+    }
+    
+    button:active {
+      transform: translateY(1px);
+    }
+    
+    .sensor-box {
+      background: rgba(5, 10, 20, 0.7);
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 20px;
+      border: 1px solid rgba(0, 225, 255, 0.1);
+      font-family: 'Roboto Mono', monospace;
+      font-size: 1.1rem;
+    }
+    
+    .sensor-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(0, 225, 255, 0.1);
+    }
+    
+    .sensor-row:last-child {
+      border-bottom: none;
+    }
+    
+    .sensor-label {
+      color: var(--secondary);
+      font-weight: 500;
+    }
+    
+    .sensor-value {
+      color: var(--text);
+      font-weight: 400;
+      text-align: right;
+      word-break: break-all;
+    }
+    
+    .result-container {
+      margin-top: 30px;
+    }
+    
+    #result {
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+      font-weight: 500;
+      text-align: center;
+      transition: all 0.3s ease;
+      border: 1px solid rgba(0, 225, 255, 0.1);
+      background: rgba(5, 10, 20, 0.7);
+    }
+    
+    #result.success {
+      color: var(--success);
+      border-color: rgba(0, 255, 157, 0.3);
+      box-shadow: 0 0 15px rgba(0, 255, 157, 0.2);
+    }
+    
+    #result.error {
+      color: var(--error);
+      border-color: rgba(255, 56, 96, 0.3);
+      box-shadow: 0 0 15px rgba(255, 56, 96, 0.2);
+    }
+    
+    #resultview {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.9rem;
+      color: var(--secondary);
+      background: rgba(5, 10, 20, 0.7);
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+      word-break: break-all;
+      border: 1px solid rgba(0, 225, 255, 0.1);
+    }
+    
+    .led {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: #444;
+      margin-right: 10px;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    }
+    
+    .led.active {
+      background-color: var(--success);
+      box-shadow: 0 0 10px var(--success);
+    }
+    
+    .terminal-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .terminal-dots {
+      display: flex;
+      gap: 8px;
+      margin-right: 15px;
+    }
+    
+    .terminal-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+    }
+    
+    .terminal-dot:nth-child(1) { background: var(--error); }
+    .terminal-dot:nth-child(2) { background: var(--warning); }
+    .terminal-dot:nth-child(3) { background: var(--success); }
+    
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      padding: 20px;
+      font-size: 0.9rem;
+      color: rgba(224, 240, 255, 0.6);
+      letter-spacing: 1px;
+    }
+    
+    @media (max-width: 600px) {
+      .container {
+        padding: 10px;
+      }
+      
+      h1 {
+        font-size: 2.2rem;
+      }
+      
+      .button-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .panel {
+        padding: 20px 15px;
+      }
+    }
+    
+    /* Animation for blockchain connection effect */
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(0, 255, 157, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(0, 255, 157, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(0, 255, 157, 0); }
+    }
+    
+    .pulse {
+      animation: pulse 2s infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>ESP32 Blockchain Dashboard</h1>
+      <p class="subtitle">Real-time sensor data secured on the blockchain</p>
+    </header>
+    
+    <div class="dashboard">
+      <div class="panel">
+        <h2><i class="fas fa-wallet"></i> Wallet Connection</h2>
+        
+        <div class="status-box">
+          <div class="status-label">Connection Status:</div>
+          <div id="walletStatus">
+            <span class="led"></span>
+            <span>Disconnected</span>
+          </div>
+        </div>
+        
+        <div class="status-box">
+          <div class="status-label">Wallet Address:</div>
+          <div id="walletAddress">Not connected</div>
+        </div>
+        
+        <button onclick="connectWallet()" class="pulse">
+          <i class="fas fa-link"></i> Connect Wallet
+        </button>
+      </div>
+      
+      <div class="panel">
+        <h2><i class="fas fa-satellite"></i> Sensor Data</h2>
+        
+        <button onclick="getSensor()">
+          <i class="fas fa-sync-alt"></i> Get Sensor Data
+        </button>
+        
+        <div class="sensor-box">
+          <div class="terminal-header">
+            <div class="terminal-dots">
+              <div class="terminal-dot"></div>
+              <div class="terminal-dot"></div>
+              <div class="terminal-dot"></div>
+            </div>
+            <div>sensor-terminal</div>
+          </div>
+          
+          <div class="sensor-row">
+            <span class="sensor-label">Distance:</span>
+            <span id="distance" class="sensor-value">--</span>
+          </div>
+          
+          <div class="sensor-row">
+            <span class="sensor-label">Timestamp:</span>
+            <span id="timestamp" class="sensor-value">--</span>
+          </div>
+          
+          <div class="sensor-row">
+            <span class="sensor-label">Hash:</span>
+            <span id="hash" class="sensor-value">--</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="panel">
+        <h2><i class="fas fa-link"></i> Blockchain Operations</h2>
+        
+        <div class="button-grid">
+          <button onclick="uploadData()">
+            <i class="fas fa-cloud-upload-alt"></i> Upload Data
+          </button>
+          
+          <button onclick="verifyData()">
+            <i class="fas fa-search"></i> Verify Data
+          </button>
+        </div>
+        
+        <div class="result-container">
+          <div id="result">Ready for operations...</div>
+          <div id="resultview"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <p>ESP32 Blockchain Integration | Secure Sensor Data Storage</p>
+    </div>
+  </div>
+
+  <script>
+    let account;
+	let contract_address= "";
+	function getContractAddress(){
+	
+	};
+    const contractAddress = "0x0c301F88C90074ECa3d0A061e15cDbfADd2CcE40";
+    const contractABI = [
+      {
+        "inputs": [{"internalType":"string","name":"timestamp","type":"string"},{"internalType":"string","name":"hash","type":"string"}],
+        "name":"uploadData","outputs":[],"stateMutability":"nonpayable","type":"function"
+      },
+      {
+        "inputs":[{"internalType":"string","name":"timestamp","type":"string"}],
+        "name":"getHash","outputs":[{"internalType":"string","name":"","type":"string"}],
+        "stateMutability":"view","type":"function"
+      }
+    ];
+
+    let web3;
+    let contract;
+    
+    // Update connection status LED
+    function updateConnectionStatus(connected) {
+      const statusLed = document.querySelector('#walletStatus .led');
+      const statusText = document.querySelector('#walletStatus span:last-child');
+      
+      if (connected) {
+        statusLed.classList.add('active');
+        statusText.textContent = 'Connected';
+      } else {
+        statusLed.classList.remove('active');
+        statusText.textContent = 'Disconnected';
+      }
+    }
+
+    async function connectWallet() {
+      if (window.ethereum) {
+        web3 = new Web3(window.ethereum);
+        try {
+          const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+          account = accounts[0];
+          document.getElementById('walletAddress').textContent = account.substring(0, 12) + '...';
+          updateConnectionStatus(true);
+          
+          contract = new web3.eth.Contract(contractABI, contractAddress);
+          
+          // Update result display
+          const result = document.getElementById('result');
+          result.textContent = "✅ Wallet connected successfully!";
+          result.className = "success";
+        } catch (err) {
+          alert("Wallet connection failed.");
+          updateConnectionStatus(false);
+        }
+      } else {
+        alert("Please install MetaMask to use this application.");
+        updateConnectionStatus(false);
+      }
+    }
+
+    function getSensor() {
+      // Simulate loading
+      const distance = document.getElementById('distance');
+      const timestamp = document.getElementById('timestamp');
+      const hash = document.getElementById('hash');
+      
+      distance.textContent = "Loading...";
+      timestamp.textContent = "Loading...";
+      hash.textContent = "Loading...";
+      
+      // In a real implementation, this would fetch from your ESP32
+      // For demo purposes, we're using simulated data
+      /*setTimeout(() => {
+        distance.textContent = "15.7 cm";
+        timestamp.textContent = "2023-07-22T14:35:42Z";
+        hash.textContent = "0x9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0";
+        
+        // Update result display
+        const result = document.getElementById('result');
+        result.textContent = "✅ Sensor data retrieved successfully!";
+        result.className = "success";
+      }, 1500);
+	  */
+      
+      // Real implementation would be:
+      
+      fetch('http://192.168.138.242/sensor')
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('distance').textContent = data.sensor_data;
+          document.getElementById('timestamp').textContent = data.timestamp;
+          document.getElementById('hash').textContent = data.hash;
+          
+          const result = document.getElementById('result');
+          result.textContent = "✅ Sensor data retrieved successfully!";
+          result.className = "success";
+        })
+        .catch(err => {
+          const result = document.getElementById('result');
+          result.textContent = "❌ Failed to retrieve sensor data";
+          result.className = "error";
+        });
+      
+    }
+
+    async function uploadData() {
+      const timestamp = document.getElementById('timestamp').textContent;
+      const hash = document.getElementById('hash').textContent;
+      
+      if (!account || !contract) {
+        const result = document.getElementById('result');
+        result.textContent = "❌ Please connect wallet first";
+        result.className = "error";
+        return;
+      }
+      
+      if (timestamp === "--" || hash === "--") {
+        const result = document.getElementById('result');
+        result.textContent = "❌ Retrieve sensor data first";
+        result.className = "error";
+        return;
+      }
+      
+      try {
+        // Simulate blockchain transaction
+        const result = document.getElementById('result');
+        result.textContent = "⏳ Uploading data to blockchain...";
+        result.className = "";
+        
+        setTimeout(async () => {
+          // In a real implementation, you would call:
+          await contract.methods.uploadData(timestamp, hash).send({ from: account });
+          
+          result.textContent = "✅ Data uploaded to blockchain!";
+          result.className = "success";
+        }, 2000);
+      } catch (err) {
+        const result = document.getElementById('result');
+        result.textContent = "❌ Upload failed: " + err.message;
+        result.className = "error";
+      }
+    }
+
+    async function verifyData() {
+      const timestamp = document.getElementById('timestamp').textContent;
+      const hash = document.getElementById('hash').textContent;
+      
+      if (!contract) {
+        const result = document.getElementById('result');
+        result.textContent = "❌ Please connect wallet first";
+        result.className = "error";
+        return;
+      }
+      
+      if (timestamp === "--" || hash === "--") {
+        const result = document.getElementById('result');
+        result.textContent = "❌ Retrieve sensor data first";
+        result.className = "error";
+        return;
+      }
+      
+      try {
+        const result = document.getElementById('result');
+        result.textContent = "🔍 Verifying data on blockchain...";
+        result.className = "";
+        
+        // Simulate blockchain verification
+        setTimeout(async () => {
+          // In a real implementation, you would call:
+          const storedHash = await contract.methods.getHash(timestamp).call();
+          //const storedHash = "0x9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0"; // Simulated hash
+          
+          if (storedHash === hash) {
+            result.textContent = "✅ Verified: Data matches blockchain record!";
+            result.className = "success";
+            document.getElementById('resultview').textContent = "Blockchain Hash: " + storedHash;
+          } else {
+            result.textContent = "❌ Mismatch: Data has been altered!";
+            result.className = "error";
+            document.getElementById('resultview').textContent = "Blockchain Hash: " + storedHash;
+          }
+        }, 2000);
+      } catch (err) {
+        const result = document.getElementById('result');
+        result.textContent = "❌ Verification error: " + err.message;
+        result.className = "error";
+      }
+    }
+    
+    // Initialize connection status
+    updateConnectionStatus(false);
+  </script>
+</body>
+</html>
